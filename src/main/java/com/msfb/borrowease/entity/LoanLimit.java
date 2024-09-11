@@ -5,7 +5,6 @@ import lombok.*;
 
 import java.util.Date;
 
-@Setter
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
@@ -23,7 +22,7 @@ public class LoanLimit {
     @Column(name = "current_limit", nullable = false)
     private Double currentLimit;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
 }

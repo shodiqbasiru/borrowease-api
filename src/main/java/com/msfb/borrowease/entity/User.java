@@ -10,7 +10,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
-@Setter
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
@@ -49,7 +48,7 @@ public class User implements UserDetails {
 
     @Override
     public String getPassword() {
-        return  password;
+        return password;
     }
 
     @Override

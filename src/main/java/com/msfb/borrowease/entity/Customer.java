@@ -6,7 +6,6 @@ import lombok.*;
 import java.util.Date;
 import java.util.List;
 
-@Setter
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
@@ -34,8 +33,16 @@ public class Customer {
     @Temporal(TemporalType.DATE)
     private Date birthDate;
 
-    @Column(name = "address", nullable = false)
+    @Column(name = "address")
     private String address;
+
+    @Column(name = "created_at", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date updatedAt;
 
     @OneToOne
     @JoinColumn(name = "user_id", unique = true)
