@@ -1,5 +1,6 @@
 package com.msfb.borrowease.controller;
 
+import com.msfb.borrowease.constant.ApiRoute;
 import com.msfb.borrowease.model.request.LoginRequest;
 import com.msfb.borrowease.model.request.RegisterRequest;
 import com.msfb.borrowease.model.response.CommonResponse;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping(ApiRoute.AUTH_API)
 public class AuthController {
     private final AuthService authService;
 
