@@ -4,16 +4,22 @@ import com.msfb.borrowease.constant.ERole;
 import com.msfb.borrowease.entity.Customer;
 import com.msfb.borrowease.entity.LoanLimit;
 import com.msfb.borrowease.entity.User;
+import com.msfb.borrowease.model.request.LoginRequest;
 import com.msfb.borrowease.model.request.RegisterRequest;
+import com.msfb.borrowease.model.response.LoginResponse;
 import com.msfb.borrowease.model.response.RegisterResponse;
 import com.msfb.borrowease.repository.UserRepository;
 import com.msfb.borrowease.service.AuthService;
 import com.msfb.borrowease.service.CustomerService;
+import com.msfb.borrowease.service.JwtService;
 import com.msfb.borrowease.service.LoanLimitService;
 import com.msfb.borrowease.util.DateUtil;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +33,9 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository repository;
     private final LoanLimitService loanLimitService;
     private final CustomerService customerService;
+    private final JwtService jwtService;
+
+    private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${borrow_ease.username.admin}")
@@ -38,10 +47,12 @@ public class AuthServiceImpl implements AuthService {
     private static final Double INITIAL_LIMIT = 10000000.0;
 
     @Autowired
-    public AuthServiceImpl(UserRepository repository, LoanLimitService loanLimitService, CustomerService customerService, PasswordEncoder passwordEncoder) {
+    public AuthServiceImpl(UserRepository repository, LoanLimitService loanLimitService, CustomerService customerService, JwtService jwtService, AuthenticationManager authenticationManager, PasswordEncoder passwordEncoder) {
         this.repository = repository;
         this.loanLimitService = loanLimitService;
         this.customerService = customerService;
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -112,6 +123,29 @@ public class AuthServiceImpl implements AuthService {
                 .birthDate(birthDateResponse)
                 .createdAt(cratedAtResponse)
                 .updatedAt(updatedAtResponse)
+                .build();
+    }
+
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public LoginResponse loginCustomer(LoginRequest request) {
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                request.getUsername(),
+                request.getPassword()
+        );
+
+        Authentication authenticate = authenticationManager.authenticate(authentication);
+        User user = (User) authenticate.getPrincipal();
+
+        String jwtToken = jwtService.generateJwtToken(user);
+
+        return LoginResponse.builder()
+                .userId(user.getId())
+                .customerId(user.getCustomer().getId())
+                .username(user.getUsername())
+                .role(user.getRole().name())
+                .token(jwtToken)
                 .build();
     }
 }
