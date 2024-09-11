@@ -35,7 +35,7 @@ public class JwtServiceImpl implements JwtService {
     @Override
     public String generateJwtToken(User user) {
         try {
-            Algorithm algorithm = Algorithm.HMAC256(JWT_SECRET);
+            Algorithm algorithm = Algorithm.HMAC512(JWT_SECRET);
             return JWT.create()
                     .withSubject(user.getId())
                     .withClaim("role", user.getRole().name())
