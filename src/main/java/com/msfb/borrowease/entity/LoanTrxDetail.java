@@ -1,5 +1,6 @@
 package com.msfb.borrowease.entity;
 
+import com.msfb.borrowease.constant.ELoanStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,24 +18,23 @@ public class LoanTrxDetail {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(name = "transaction_date", nullable = false)
+    @Column(name = "start_date", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
-    private Date transactionDate;
+    private Date startDate;
+
+    @Column(name = "end_date", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date endDate;
 
     @Column(name = "payment_amount", nullable = false)
     private Double paymentAmount;
 
-    @Column(name = "principal_amount", nullable = false)
-    private Double principalAmount;
+//    @Column(name = "late_fee", nullable = false)
+//    private Double lateFee;
 
-    @Column(name = "interest_amount", nullable = false)
-    private Double interestAmount;
-
-    @Column(name = "late_fee", nullable = false)
-    private Double lateFee;
-
-    @Column(name = "remaining_balance", nullable = false)
-    private Double remainingBalance;
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private ELoanStatus status;
 
     @ManyToOne
     @JoinColumn(name = "loan_trx_id", nullable = false)

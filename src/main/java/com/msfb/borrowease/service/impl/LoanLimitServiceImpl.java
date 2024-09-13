@@ -25,6 +25,12 @@ public class LoanLimitServiceImpl implements LoanLimitService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
+    public LoanLimit getById(String id) {
+        return repository.findById(id).orElseThrow(() -> new RuntimeException("Loan Limit not found"));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
     public void updateLoanLimit(LoanLimit loanLimit) {
         repository.saveAndFlush(loanLimit);
     }

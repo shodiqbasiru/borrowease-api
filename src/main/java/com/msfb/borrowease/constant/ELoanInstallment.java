@@ -15,4 +15,12 @@ public enum ELoanInstallment {
         this.month = month;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public Integer getMonth() {
+        return month;
+    }
+
 }
