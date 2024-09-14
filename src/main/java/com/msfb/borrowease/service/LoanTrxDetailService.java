@@ -4,4 +4,5 @@ import com.msfb.borrowease.entity.LoanTrxDetail;
 
 public interface LoanTrxDetailService {
     LoanTrxDetail createLoanTrxDetail(LoanTrxDetail loanTrxDetail);
+    LoanTrxDetail getById(String id);
 }

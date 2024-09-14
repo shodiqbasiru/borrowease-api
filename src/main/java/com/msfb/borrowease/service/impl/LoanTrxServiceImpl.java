@@ -9,8 +9,10 @@ import com.msfb.borrowease.entity.LoanLimit;
 import com.msfb.borrowease.entity.LoanTrx;
 import com.msfb.borrowease.entity.LoanTrxDetail;
 import com.msfb.borrowease.model.request.LoanRequest;
+import com.msfb.borrowease.model.request.PaymentRequest;
 import com.msfb.borrowease.model.response.LoanResponse;
 import com.msfb.borrowease.model.response.LoanTrxDetailResponse;
+import com.msfb.borrowease.model.response.PaymentResponse;
 import com.msfb.borrowease.repository.LoanTrxRepository;
 import com.msfb.borrowease.service.CustomerService;
 import com.msfb.borrowease.service.LoanLimitService;
@@ -143,6 +145,37 @@ public class LoanTrxServiceImpl implements LoanTrxService {
                         .status(trxDetail.getStatus().name())
                         .build()).toList())
                 .build();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public List<PaymentResponse> createPaymentLoan(List<PaymentRequest> requests) {
+        List<PaymentResponse> responses = new ArrayList<>();
+        for (PaymentRequest request : requests) {
+            LoanTrxDetail loanTrxDetail = loanTrxDetailService.getById(request.getLoanTrxDetailId());
+            if (loanTrxDetail.getStatus().equals(ELoanStatus.PAID)) {
+                throw new RuntimeException("Loan trx detail already paid");
+            }
+            if (request.getAmount() < loanTrxDetail.getPaymentAmount()) {
+                throw new RuntimeException("Payment amount less than installment amount");
+            }
+
+            loanTrxDetail.setStatus(ELoanStatus.PAID);
+
+            LoanTrxDetail trxDetail = loanTrxDetailService.createLoanTrxDetail(loanTrxDetail);
+            responses.add(PaymentResponse.builder()
+                            .loanTrxDetailId(trxDetail.getId())
+                            .amount(request.getAmount())
+                            .paymentDate(new Date().toString())
+                            .status(trxDetail.getStatus().name())
+                    .build());
+        }
+        return responses;
+    }
+
+    @Override
+    public LoanTrx getById(String id) {
+        return repository.findById(id).orElseThrow(() -> new RuntimeException("Loan trx not found"));
     }
 
     private static ELoanType getLoanType(LoanRequest request) {
