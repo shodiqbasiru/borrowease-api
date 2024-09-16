@@ -22,5 +22,5 @@ public class Job {
     private String companyName;
 
     @Column(name = "salary", nullable = false)
-    private Double salary;
+    private int salary;
 }

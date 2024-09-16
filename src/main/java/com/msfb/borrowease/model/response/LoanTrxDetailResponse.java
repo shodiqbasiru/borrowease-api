@@ -12,6 +12,6 @@ public class LoanTrxDetailResponse {
     private String loanId;
     private String startDate;
     private String endDate;
-    private Double paymentAmount;
+    private int paymentAmount;
     private String status;
 }

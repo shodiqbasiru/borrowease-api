@@ -18,10 +18,10 @@ public class LoanLimit {
     private String id;
 
     @Column(name = "initial_limit", nullable = false)
-    private Double initialLimit;
+    private Integer initialLimit;
 
     @Column(name = "current_limit", nullable = false)
-    private Double currentLimit;
+    private Integer currentLimit;
 
     @Column(name = "updated_at")
     @Temporal(TemporalType.TIMESTAMP)

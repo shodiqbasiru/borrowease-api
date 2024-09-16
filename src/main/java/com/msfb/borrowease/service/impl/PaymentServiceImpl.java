@@ -1,0 +1,112 @@
+package com.msfb.borrowease.service.impl;
+
+import com.msfb.borrowease.constant.ELoanTrxStatus;
+import com.msfb.borrowease.entity.LoanTrx;
+import com.msfb.borrowease.entity.LoanTrxDetail;
+import com.msfb.borrowease.entity.Payment;
+import com.msfb.borrowease.model.request.PaymentDetailRequest;
+import com.msfb.borrowease.model.request.PaymentItemDetailRequest;
+import com.msfb.borrowease.model.request.PaymentLoanRequest;
+import com.msfb.borrowease.model.request.PaymentRequest;
+import com.msfb.borrowease.repository.PaymentRepository;
+import com.msfb.borrowease.service.PaymentService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class PaymentServiceImpl implements PaymentService {
+
+    private final PaymentRepository repository;
+    private final RestClient restClient;
+    private final String SECRET_KEY;
+    private final String SNAP_BASE_URL;
+
+    @Autowired
+    public PaymentServiceImpl(
+            PaymentRepository repository,
+            RestClient restClient,
+            @Value("${midtrans.api.key}") String secretKey,
+            @Value("${midtrans.api.snap-url}") String snapBaseUrl) {
+        this.repository = repository;
+        this.restClient = restClient;
+        SECRET_KEY = secretKey;
+        SNAP_BASE_URL = snapBaseUrl;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public Payment createNewPayment(LoanTrx trx, List<PaymentLoanRequest> loanRequests) {
+        double amount = 0;
+        int qty = loanRequests.size();
+        for (PaymentLoanRequest request : loanRequests) {
+            for (LoanTrxDetail trxDetail : trx.getLoanTrxDetails()) {
+                if (trxDetail.getId().equals(request.getLoanTrxDetailId())) {
+                    amount += trxDetail.getPaymentAmount();
+                }
+            }
+        }
+
+        PaymentDetailRequest detailRequest = PaymentDetailRequest.builder()
+                .orderId(trx.getId())
+                .amount((int) amount)
+                .build();
+
+        List<PaymentItemDetailRequest> itemDetailRequests = new ArrayList<>();
+        for (int i = 0; i < qty; i++) {
+            PaymentLoanRequest request = loanRequests.get(i);
+            for (LoanTrxDetail trxDetail : trx.getLoanTrxDetails()) {
+                if (trxDetail.getId().equals(request.getLoanTrxDetailId())) {
+                    itemDetailRequests.add(PaymentItemDetailRequest.builder()
+                            .name("Installment - " + trxDetail.getStartDate().toString())
+                            .price(trxDetail.getPaymentAmount())
+                            .quantity(1)
+                            .build());
+
+                }
+            }
+        }
+
+        List<String> paymentMethods = List.of(
+                "bca_va",
+                "bni_va",
+                "bri_va",
+                "shopeepay",
+                "gopay",
+                "indomaret"
+        );
+
+        PaymentRequest paymentRequest = PaymentRequest.builder()
+                .paymentDetail(detailRequest)
+                .paymentItemDetails(itemDetailRequests)
+                .paymentMethods(paymentMethods)
+                .build();
+
+        ResponseEntity<Map<String, String>> response = restClient.post()
+                .uri(SNAP_BASE_URL)
+                .body(paymentRequest)
+                .header(HttpHeaders.AUTHORIZATION, "Basic " + SECRET_KEY)
+                .retrieve().toEntity(new ParameterizedTypeReference<>() {
+                });
+
+        Map<String, String> body = response.getBody();
+
+        if (body == null) throw new RuntimeException("Failed to create payment");
+
+        Payment payment = Payment.builder()
+                .token(body.get("token"))
+                .redirectUrl(body.get("redirect_url"))
+                .transactionStatus(ELoanTrxStatus.ORDERED)
+                .build();
+        return repository.saveAndFlush(payment);
+    }
+}

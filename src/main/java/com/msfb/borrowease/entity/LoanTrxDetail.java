@@ -27,14 +27,15 @@ public class LoanTrxDetail {
     private Date endDate;
 
     @Column(name = "payment_amount", nullable = false)
-    private Double paymentAmount;
-
-//    @Column(name = "late_fee", nullable = false)
-//    private Double lateFee;
+    private Integer paymentAmount;
 
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private ELoanStatus status;
+
+    @ManyToOne
+    @JoinColumn(name = "payment_id")
+    private Payment payment;
 
     @ManyToOne
     @JoinColumn(name = "loan_trx_id", nullable = false)

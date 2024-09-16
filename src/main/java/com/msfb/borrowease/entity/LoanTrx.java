@@ -30,7 +30,7 @@ public class LoanTrx {
     private ELoanType loanType;
 
     @Column(name = "amount", nullable = false)
-    private Double amount;
+    private int amount;
 
     @Column(name="term_month", nullable = false)
     private Integer termMonth;
@@ -43,7 +43,7 @@ public class LoanTrx {
     private Double interestRate;
 
     @Column(name = "installment_amount", nullable = false)
-    private Double installmentAmount;
+    private int installmentAmount;
 
     @Column(name="loan_process", nullable = false)
     @Enumerated(EnumType.STRING)

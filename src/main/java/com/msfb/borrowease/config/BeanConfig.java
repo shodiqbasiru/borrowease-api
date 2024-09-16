@@ -6,6 +6,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
 
 @Component
 public class BeanConfig {
@@ -18,5 +19,10 @@ public class BeanConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
+    }
+
+    @Bean
+    public RestClient restClient() {
+        return RestClient.create();
     }
 }

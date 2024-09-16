@@ -4,20 +4,15 @@ import com.msfb.borrowease.constant.ELoanInstallment;
 import com.msfb.borrowease.constant.ELoanProcess;
 import com.msfb.borrowease.constant.ELoanStatus;
 import com.msfb.borrowease.constant.ELoanType;
-import com.msfb.borrowease.entity.Customer;
-import com.msfb.borrowease.entity.LoanLimit;
-import com.msfb.borrowease.entity.LoanTrx;
-import com.msfb.borrowease.entity.LoanTrxDetail;
+import com.msfb.borrowease.entity.*;
 import com.msfb.borrowease.model.request.LoanRequest;
-import com.msfb.borrowease.model.request.PaymentRequest;
+import com.msfb.borrowease.model.request.PaymentLoanRequest;
 import com.msfb.borrowease.model.response.LoanResponse;
 import com.msfb.borrowease.model.response.LoanTrxDetailResponse;
+import com.msfb.borrowease.model.response.PaymentDetailResponse;
 import com.msfb.borrowease.model.response.PaymentResponse;
 import com.msfb.borrowease.repository.LoanTrxRepository;
-import com.msfb.borrowease.service.CustomerService;
-import com.msfb.borrowease.service.LoanLimitService;
-import com.msfb.borrowease.service.LoanTrxDetailService;
-import com.msfb.borrowease.service.LoanTrxService;
+import com.msfb.borrowease.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,13 +28,15 @@ public class LoanTrxServiceImpl implements LoanTrxService {
     private final CustomerService customerService;
     private final LoanLimitService loanLimitService;
     private final LoanTrxDetailService loanTrxDetailService;
+    private final PaymentService paymentService;
 
     @Autowired
-    public LoanTrxServiceImpl(LoanTrxRepository repository, CustomerService customerService, LoanLimitService loanLimitService, LoanTrxDetailService loanTrxDetailService) {
+    public LoanTrxServiceImpl(LoanTrxRepository repository, CustomerService customerService, LoanLimitService loanLimitService, LoanTrxDetailService loanTrxDetailService, PaymentService paymentService) {
         this.repository = repository;
         this.customerService = customerService;
         this.loanLimitService = loanLimitService;
         this.loanTrxDetailService = loanTrxDetailService;
+        this.paymentService = paymentService;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -48,7 +45,7 @@ public class LoanTrxServiceImpl implements LoanTrxService {
         Customer customer = customerService.getById(request.getCustomerId());
 
         boolean isUnpaidLoan = customer.getLoanTrx().stream().anyMatch(loanTrx -> loanTrx.getLoanTrxDetails().stream().anyMatch(trxDetail -> trxDetail.getStatus().equals(ELoanStatus.UNPAID)));
-        if(isUnpaidLoan) {
+        if (isUnpaidLoan) {
             throw new RuntimeException("You have unpaid loan");
         }
 
@@ -94,13 +91,13 @@ public class LoanTrxServiceImpl implements LoanTrxService {
                 .termMonth(request.getTermMonth())
                 .interestRate(interestRate)
                 .installment(loanInstallment)
-                .installmentAmount(request.getAmount() * (1 + interestRate / 100))
+                .installmentAmount((int) (request.getAmount() * (1 + interestRate / 100)))
                 .customer(customer)
                 .loanProcess(ELoanProcess.ON_PROGRESS)
                 .build();
         LoanTrx trx = repository.saveAndFlush(loanTrx);
 
-        Double paymentAmount = request.getAmount() * (1 + interestRate / 100) / loanInstallment.getMonth();
+        int paymentAmount = (int) (request.getAmount() * (1 + interestRate / 100) / loanInstallment.getMonth());
 
         int lengthTrxDetail = loanInstallment.getMonth();
         List<LoanTrxDetail> loanTrxDetails = new ArrayList<>();
@@ -149,9 +146,11 @@ public class LoanTrxServiceImpl implements LoanTrxService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public List<PaymentResponse> createPaymentLoan(List<PaymentRequest> requests) {
-        List<PaymentResponse> responses = new ArrayList<>();
-        for (PaymentRequest request : requests) {
+    public PaymentResponse createPaymentLoan(List<PaymentLoanRequest> requests) {
+
+        Payment payment;
+        List<LoanTrxDetail> loanTrxDetails = new ArrayList<>();
+        for (PaymentLoanRequest request : requests) {
             LoanTrxDetail loanTrxDetail = loanTrxDetailService.getById(request.getLoanTrxDetailId());
             if (loanTrxDetail.getStatus().equals(ELoanStatus.PAID)) {
                 throw new RuntimeException("Loan trx detail already paid");
@@ -160,17 +159,32 @@ public class LoanTrxServiceImpl implements LoanTrxService {
                 throw new RuntimeException("Payment amount less than installment amount");
             }
 
-            loanTrxDetail.setStatus(ELoanStatus.PAID);
-
-            LoanTrxDetail trxDetail = loanTrxDetailService.createLoanTrxDetail(loanTrxDetail);
-            responses.add(PaymentResponse.builder()
-                            .loanTrxDetailId(trxDetail.getId())
-                            .amount(request.getAmount())
-                            .paymentDate(new Date().toString())
-                            .status(trxDetail.getStatus().name())
-                    .build());
+            loanTrxDetail.setStatus(ELoanStatus.PENDING);
+            loanTrxDetails.add(loanTrxDetailService.createLoanTrxDetail(loanTrxDetail));
         }
-        return responses;
+
+        if (loanTrxDetails.isEmpty()) throw new RuntimeException("Loan trx detail not found");
+
+        payment = paymentService.createNewPayment(loanTrxDetails.get(0).getLoanTrx(), requests);
+        for (LoanTrxDetail loanTrxDetail : loanTrxDetails) {
+            loanTrxDetail.setPayment(payment);
+            loanTrxDetailService.createLoanTrxDetail(loanTrxDetail);
+        }
+
+        List<PaymentDetailResponse> detailPaymentResponses = requests.stream().map(request -> PaymentDetailResponse.builder()
+                .id(request.getLoanTrxDetailId())
+                .amount(request.getAmount())
+                .build()).toList();
+
+        if (payment == null) throw new RuntimeException("Payment not found");
+
+        return PaymentResponse.builder()
+                .id(payment.getId())
+                .token(payment.getToken())
+                .redirectUrl(payment.getRedirectUrl())
+                .loanTrxStatus(payment.getTransactionStatus().name())
+                .detailPayments(detailPaymentResponses)
+                .build();
     }
 
     @Override

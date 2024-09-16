@@ -13,10 +13,10 @@ public class LoanResponse {
     private String id;
     private String customerId;
     private String loanType;
-    private Double amount;
+    private int amount;
     private Integer termMonth;
     private String installment;
     private String interestRate;
-    private Double installmentAmount;
+    private int installmentAmount;
     private List<LoanTrxDetailResponse> loanTrxDetails;
 }

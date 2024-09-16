@@ -1,6 +1,9 @@
 package com.msfb.borrowease.model.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
+
+import java.util.List;
 
 @Setter
 @Getter
@@ -8,6 +11,13 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class PaymentRequest {
-    private String loanTrxDetailId;
-    private Double amount;
+    @JsonProperty("transaction_details")
+    private PaymentDetailRequest paymentDetail;
+
+    @JsonProperty("item_details")
+    private List<PaymentItemDetailRequest> paymentItemDetails;
+
+    @JsonProperty("enabled_payments")
+    List<String> paymentMethods;
+
 }

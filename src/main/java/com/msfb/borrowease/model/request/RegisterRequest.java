@@ -23,6 +23,6 @@ public class RegisterRequest {
     private String identityNumber;
     private String jobName;
     private String companyName;
-    private Double salary;
+    private int salary;
     private String npwp;
 }

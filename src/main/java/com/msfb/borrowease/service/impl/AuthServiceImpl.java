@@ -44,7 +44,7 @@ public class AuthServiceImpl implements AuthService {
     @Value("${borrow_ease.password.admin}")
     private String adminPassword;
 
-    private static final Double INITIAL_LIMIT = 10000000.0;
+    private static final int INITIAL_LIMIT = 10000000;
 
     @Autowired
     public AuthServiceImpl(UserRepository repository, LoanLimitService loanLimitService, CustomerService customerService, JwtService jwtService, IdentityCardService identityCardService, JobService jobService, AuthenticationManager authenticationManager, PasswordEncoder passwordEncoder) {
