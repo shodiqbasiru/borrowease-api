@@ -13,8 +13,10 @@ import com.msfb.borrowease.repository.LoanTrxRepository;
 import com.msfb.borrowease.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -46,7 +48,7 @@ public class LoanTrxServiceImpl implements LoanTrxService {
 
         boolean isUnpaidLoan = customer.getLoanTrx().stream().anyMatch(loanTrx -> loanTrx.getLoanTrxDetails().stream().anyMatch(trxDetail -> trxDetail.getStatus().equals(ELoanStatus.UNPAID)));
         if (isUnpaidLoan) {
-            throw new RuntimeException("You have unpaid loan");
+            throw new ResponseStatusException(HttpStatus.NOT_ACCEPTABLE, "Customer has unpaid loan");
         }
 
         double interestRate;
@@ -72,12 +74,12 @@ public class LoanTrxServiceImpl implements LoanTrxService {
                 loanInstallment = ELoanInstallment.TWENTY_FOUR_MONTH;
                 interestRate = 3.5;
             }
-            default -> throw new RuntimeException("Term month not valid");
+            default -> throw new ResponseStatusException(HttpStatus.NOT_ACCEPTABLE, "Term month not valid");
         }
 
         LoanLimit loanLimit = loanLimitService.getById(customer.getLoanLimit().getId());
         if (loanLimit.getCurrentLimit() - request.getAmount() < 0) {
-            throw new RuntimeException("Loan amount exceed limit");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loan amount exceeds loan limit");
         }
         loanLimit.setCurrentLimit(loanLimit.getCurrentLimit() - request.getAmount());
         loanLimit.setUpdatedAt(new Date());
@@ -150,10 +152,10 @@ public class LoanTrxServiceImpl implements LoanTrxService {
         for (PaymentLoanRequest request : requests) {
             LoanTrxDetail trxDetail = loanTrxDetailService.getById(request.getLoanTrxDetailId());
             if (trxDetail.getStatus().equals(ELoanStatus.PAID)) {
-                throw new RuntimeException("Loan trx detail already paid");
+                throw new ResponseStatusException(HttpStatus.NOT_ACCEPTABLE, "Loan trx detail already paid");
             }
             if (request.getAmount() < trxDetail.getPaymentAmount()) {
-                throw new RuntimeException("Payment amount less than installment amount");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payment amount less than payment amount");
             }
 
             trxDetail.setStatus(ELoanStatus.PENDING);
@@ -174,7 +176,7 @@ public class LoanTrxServiceImpl implements LoanTrxService {
                 .amount(request.getAmount())
                 .build()).toList();
 
-        if (payment == null) throw new RuntimeException("Payment not found");
+        if (payment == null) throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error while creating payment");
 
         return PaymentResponse.builder()
                 .id(payment.getId())
@@ -188,7 +190,7 @@ public class LoanTrxServiceImpl implements LoanTrxService {
     @Transactional(readOnly = true)
     @Override
     public LoanTrx getById(String id) {
-        return repository.findById(id).orElseThrow(() -> new RuntimeException("Loan trx not found"));
+        return repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan trx not found"));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -226,7 +228,7 @@ public class LoanTrxServiceImpl implements LoanTrxService {
         } else if (request.getLoanType().equalsIgnoreCase(ELoanType.EMERGENCY.name())) {
             return ELoanType.EMERGENCY;
         } else {
-            throw new RuntimeException("Loan type not valid");
+            throw new ResponseStatusException(HttpStatus.NOT_ACCEPTABLE, "Loan type not valid");
         }
     }
 }

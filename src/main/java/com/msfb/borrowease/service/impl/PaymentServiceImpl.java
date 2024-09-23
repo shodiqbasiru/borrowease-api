@@ -108,7 +108,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         Map<String, String> body = response.getBody();
 
-        if (body == null) throw new RuntimeException("Failed to create payment");
+        if (body == null) throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error while creating payment");
 
         payment.setToken(body.get("token"));
         payment.setRedirectUrl(body.get("redirect_url"));

@@ -6,8 +6,10 @@ import com.msfb.borrowease.repository.LoanLimitRepository;
 import com.msfb.borrowease.service.CustomerService;
 import com.msfb.borrowease.service.LoanLimitService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class LoanLimitServiceImpl implements LoanLimitService {
@@ -30,7 +32,7 @@ public class LoanLimitServiceImpl implements LoanLimitService {
     @Transactional(rollbackFor = Exception.class)
     @Override
     public LoanLimit getById(String id) {
-        return repository.findById(id).orElseThrow(() -> new RuntimeException("Loan Limit not found"));
+        return repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan Limit not found"));
     }
 
     @Transactional(rollbackFor = Exception.class)
