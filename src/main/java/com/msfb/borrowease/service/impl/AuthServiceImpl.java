@@ -94,7 +94,7 @@ public class AuthServiceImpl implements AuthService {
                 .initialLimit(INITIAL_LIMIT)
                 .currentLimit(INITIAL_LIMIT)
                 .build();
-        loanLimitService.createLoanLimit(loanLimit);
+        loanLimitService.saveLoanLimit(loanLimit);
 
         Job job = Job.builder()
                 .jobName(request.getJobName())

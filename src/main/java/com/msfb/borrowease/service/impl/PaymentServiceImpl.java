@@ -137,7 +137,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Transactional(readOnly = true)
     @Override
-    public Payment geById(String paymentId) {
+    public Payment getById(String paymentId) {
         return repository.findById(paymentId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"payment not found"));
     }
 }

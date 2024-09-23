@@ -66,7 +66,7 @@ public class LoanController {
                 .paymentId(request.get("order_id"))
                 .transactionStatus(request.get("transaction_status"))
                 .build();
-        loanTrxService.updateStatus(updateOrderStatusRequest);
+        loanTrxService.updateStatusAndLimit(updateOrderStatusRequest);
         return ResponseEntity.ok(CommonResponse.builder()
                 .statusCode(HttpStatus.OK.value())
                 .message("Loan transaction status updated successfully")

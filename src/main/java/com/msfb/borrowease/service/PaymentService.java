@@ -9,5 +9,5 @@ import java.util.List;
 public interface PaymentService {
     Payment createNewPayment(LoanTrx trx, List<PaymentLoanRequest> loanRequests);
     void checkFailedAndUpdateStatus();
-    Payment geById(String paymentId);
+    Payment getById(String paymentId);
 }

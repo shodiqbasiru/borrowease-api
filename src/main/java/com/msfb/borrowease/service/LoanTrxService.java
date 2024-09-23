@@ -14,5 +14,5 @@ public interface LoanTrxService {
     PaymentResponse createPaymentLoan(List<PaymentLoanRequest> requests);
     LoanTrx getById(String id);
 
-    void updateStatus(UpdateOrderStatusRequest request);
+    void updateStatusAndLimit(UpdateOrderStatusRequest request);
 }

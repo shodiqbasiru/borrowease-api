@@ -81,6 +81,7 @@ public class LoanTrxServiceImpl implements LoanTrxService {
         }
         loanLimit.setCurrentLimit(loanLimit.getCurrentLimit() - request.getAmount());
         loanLimit.setUpdatedAt(new Date());
+        loanLimitService.saveLoanLimit(loanLimit);
 
         ELoanType loanType = getLoanType(request);
 
@@ -192,11 +193,12 @@ public class LoanTrxServiceImpl implements LoanTrxService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void updateStatus(UpdateOrderStatusRequest request) {
-        Payment payment = paymentService.geById(request.getPaymentId());
+    public void updateStatusAndLimit(UpdateOrderStatusRequest request) {
+        Payment payment = paymentService.getById(request.getPaymentId());
+
         payment.setTransactionStatus(ELoanTrxStatus.getByName(request.getTransactionStatus()));
         payment.getLoanTrxDetails().forEach(trxDetail -> {
-            if (trxDetail.getStatus().equals(ELoanStatus.PENDING)) {
+            if (payment.getTransactionStatus().equals(ELoanTrxStatus.SETTLEMENT)) {
                 trxDetail.setStatus(ELoanStatus.PAID);
             }
         });
@@ -207,6 +209,8 @@ public class LoanTrxServiceImpl implements LoanTrxService {
 
         if (allPaid) {
             loanTrx.setLoanProcess(ELoanProcess.COMPLETED);
+            int amount = loanTrx.getAmount();
+            loanLimitService.increaseLoanLimit(loanTrx.getCustomer().getId(), amount);
         } else {
             loanTrx.setLoanProcess(ELoanProcess.ON_PROGRESS);
         }
