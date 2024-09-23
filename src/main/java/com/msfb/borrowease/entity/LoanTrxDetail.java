@@ -18,13 +18,9 @@ public class LoanTrxDetail {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(name = "start_date", nullable = false)
+    @Column(name = "due_date", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
-    private Date startDate;
-
-    @Column(name = "end_date", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date endDate;
+    private Date dueDate;
 
     @Column(name = "payment_amount", nullable = false)
     private Integer paymentAmount;
@@ -34,10 +30,10 @@ public class LoanTrxDetail {
     private ELoanStatus status;
 
     @ManyToOne
-    @JoinColumn(name = "payment_id")
-    private Payment payment;
-
-    @ManyToOne
     @JoinColumn(name = "loan_trx_id", nullable = false)
     private LoanTrx loanTrx;
+
+    @ManyToOne
+    @JoinColumn(name = "payment_id")
+    private Payment payment;
 }

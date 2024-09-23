@@ -1,18 +1,17 @@
 package com.msfb.borrowease.service.impl;
 
-import com.msfb.borrowease.constant.ELoanInstallment;
-import com.msfb.borrowease.constant.ELoanProcess;
-import com.msfb.borrowease.constant.ELoanStatus;
-import com.msfb.borrowease.constant.ELoanType;
+import com.msfb.borrowease.constant.*;
 import com.msfb.borrowease.entity.*;
 import com.msfb.borrowease.model.request.LoanRequest;
 import com.msfb.borrowease.model.request.PaymentLoanRequest;
+import com.msfb.borrowease.model.request.UpdateOrderStatusRequest;
 import com.msfb.borrowease.model.response.LoanResponse;
 import com.msfb.borrowease.model.response.LoanTrxDetailResponse;
 import com.msfb.borrowease.model.response.PaymentDetailResponse;
 import com.msfb.borrowease.model.response.PaymentResponse;
 import com.msfb.borrowease.repository.LoanTrxRepository;
 import com.msfb.borrowease.service.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +21,7 @@ import java.util.Date;
 import java.util.List;
 
 @Service
+@Slf4j
 public class LoanTrxServiceImpl implements LoanTrxService {
 
     private final LoanTrxRepository repository;
@@ -109,14 +109,13 @@ public class LoanTrxServiceImpl implements LoanTrxService {
                     .build();
 
             Date startDate = new Date();
-            Date endDate = new Date(startDate.getTime() + (long) 30 * 24 * 60 * 60 * 1000);
+            Date dueDate = new Date(startDate.getTime() + (long) 30 * 24 * 60 * 60 * 1000);
             if (i > 0) {
-                startDate = loanTrxDetails.get(i - 1).getEndDate();
-                endDate = new Date(startDate.getTime() + (long) 30 * 24 * 60 * 60 * 1000);
+                startDate = loanTrxDetails.get(i - 1).getDueDate();
+                dueDate = new Date(startDate.getTime() + (long) 30 * 24 * 60 * 60 * 1000);
             }
 
-            loanTrxDetail.setStartDate(startDate);
-            loanTrxDetail.setEndDate(endDate);
+            loanTrxDetail.setDueDate(dueDate);
 
             LoanTrxDetail detail = loanTrxDetailService.createLoanTrxDetail(loanTrxDetail);
             loanTrxDetails.add(detail);
@@ -136,8 +135,7 @@ public class LoanTrxServiceImpl implements LoanTrxService {
                 .loanTrxDetails(trx.getLoanTrxDetails().stream().map(trxDetail -> LoanTrxDetailResponse.builder()
                         .id(trxDetail.getId())
                         .loanId(trx.getId())
-                        .startDate(trxDetail.getStartDate().toString())
-                        .endDate(trxDetail.getEndDate().toString())
+                        .dueDate(trxDetail.getDueDate().toString())
                         .paymentAmount(trxDetail.getPaymentAmount())
                         .status(trxDetail.getStatus().name())
                         .build()).toList())
@@ -147,30 +145,29 @@ public class LoanTrxServiceImpl implements LoanTrxService {
     @Transactional(rollbackFor = Exception.class)
     @Override
     public PaymentResponse createPaymentLoan(List<PaymentLoanRequest> requests) {
-
-        Payment payment;
         List<LoanTrxDetail> loanTrxDetails = new ArrayList<>();
         for (PaymentLoanRequest request : requests) {
-            LoanTrxDetail loanTrxDetail = loanTrxDetailService.getById(request.getLoanTrxDetailId());
-            if (loanTrxDetail.getStatus().equals(ELoanStatus.PAID)) {
+            LoanTrxDetail trxDetail = loanTrxDetailService.getById(request.getLoanTrxDetailId());
+            if (trxDetail.getStatus().equals(ELoanStatus.PAID)) {
                 throw new RuntimeException("Loan trx detail already paid");
             }
-            if (request.getAmount() < loanTrxDetail.getPaymentAmount()) {
+            if (request.getAmount() < trxDetail.getPaymentAmount()) {
                 throw new RuntimeException("Payment amount less than installment amount");
             }
 
-            loanTrxDetail.setStatus(ELoanStatus.PENDING);
-            loanTrxDetails.add(loanTrxDetailService.createLoanTrxDetail(loanTrxDetail));
+            trxDetail.setStatus(ELoanStatus.PENDING);
+            loanTrxDetails.add(loanTrxDetailService.createLoanTrxDetail(trxDetail));
         }
 
         if (loanTrxDetails.isEmpty()) throw new RuntimeException("Loan trx detail not found");
 
-        payment = paymentService.createNewPayment(loanTrxDetails.get(0).getLoanTrx(), requests);
+        LoanTrx loanTrx = loanTrxDetails.get(0).getLoanTrx();
+        Payment payment = paymentService.createNewPayment(loanTrx, requests);
+
         for (LoanTrxDetail loanTrxDetail : loanTrxDetails) {
             loanTrxDetail.setPayment(payment);
             loanTrxDetailService.createLoanTrxDetail(loanTrxDetail);
         }
-
         List<PaymentDetailResponse> detailPaymentResponses = requests.stream().map(request -> PaymentDetailResponse.builder()
                 .id(request.getLoanTrxDetailId())
                 .amount(request.getAmount())
@@ -187,9 +184,32 @@ public class LoanTrxServiceImpl implements LoanTrxService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     @Override
     public LoanTrx getById(String id) {
         return repository.findById(id).orElseThrow(() -> new RuntimeException("Loan trx not found"));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void updateStatus(UpdateOrderStatusRequest request) {
+        Payment payment = paymentService.geById(request.getPaymentId());
+        payment.setTransactionStatus(ELoanTrxStatus.getByName(request.getTransactionStatus()));
+        payment.getLoanTrxDetails().forEach(trxDetail -> {
+            if (trxDetail.getStatus().equals(ELoanStatus.PENDING)) {
+                trxDetail.setStatus(ELoanStatus.PAID);
+            }
+        });
+
+        LoanTrx loanTrx = payment.getLoanTrxDetails().get(0).getLoanTrx();
+        boolean allPaid = loanTrx.getLoanTrxDetails().stream()
+                .allMatch(detail -> detail.getStatus().equals(ELoanStatus.PAID));
+
+        if (allPaid) {
+            loanTrx.setLoanProcess(ELoanProcess.COMPLETED);
+        } else {
+            loanTrx.setLoanProcess(ELoanProcess.ON_PROGRESS);
+        }
     }
 
     private static ELoanType getLoanType(LoanRequest request) {

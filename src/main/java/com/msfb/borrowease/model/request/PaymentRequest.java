@@ -18,6 +18,6 @@ public class PaymentRequest {
     private List<PaymentItemDetailRequest> paymentItemDetails;
 
     @JsonProperty("enabled_payments")
-    List<String> paymentMethods;
+    private List<String> paymentMethods;
 
 }

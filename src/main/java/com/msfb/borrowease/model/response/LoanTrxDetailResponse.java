@@ -10,8 +10,7 @@ import lombok.*;
 public class LoanTrxDetailResponse {
     private String id;
     private String loanId;
-    private String startDate;
-    private String endDate;
+    private String dueDate;
     private int paymentAmount;
     private String status;
 }

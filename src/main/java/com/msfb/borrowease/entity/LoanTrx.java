@@ -49,14 +49,6 @@ public class LoanTrx {
     @Enumerated(EnumType.STRING)
     private ELoanProcess loanProcess;
 
-//    @ManyToOne
-//    @JoinColumn(name = "loan_type_id", nullable = false)
-//    private LoanType loanType;
-
-//    @ManyToOne
-//    @JoinColumn(name = "loan_installment_id", nullable = false)
-//    private LoanInstallment loanInstallment;
-
     @ManyToOne
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
