@@ -12,7 +12,8 @@ import java.util.List;
 public interface LoanTrxService {
     LoanResponse createLoanTrx(LoanRequest request);
     PaymentResponse createPaymentLoan(List<PaymentLoanRequest> requests);
+    void loanApproval(String id);
     LoanTrx getById(String id);
-
+    List<LoanResponse> getAllLoanTrx();
     void updateStatusAndLimit(UpdateOrderStatusRequest request);
 }

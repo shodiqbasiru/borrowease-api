@@ -2,6 +2,7 @@ package com.msfb.borrowease.service.impl;
 
 import com.msfb.borrowease.constant.*;
 import com.msfb.borrowease.entity.*;
+import com.msfb.borrowease.mapping.LoanTrxMapping;
 import com.msfb.borrowease.model.request.LoanRequest;
 import com.msfb.borrowease.model.request.PaymentLoanRequest;
 import com.msfb.borrowease.model.request.UpdateOrderStatusRequest;
@@ -126,23 +127,7 @@ public class LoanTrxServiceImpl implements LoanTrxService {
 
         loanTrx.setLoanTrxDetails(loanTrxDetails);
 
-        return LoanResponse.builder()
-                .id(trx.getId())
-                .customerId(trx.getCustomer().getId())
-                .loanType(trx.getLoanType().name())
-                .amount(trx.getAmount())
-                .termMonth(trx.getTermMonth())
-                .installment(trx.getInstallment().name())
-                .interestRate(trx.getInterestRate() + "%")
-                .installmentAmount(trx.getInstallmentAmount())
-                .loanTrxDetails(trx.getLoanTrxDetails().stream().map(trxDetail -> LoanTrxDetailResponse.builder()
-                        .id(trxDetail.getId())
-                        .loanId(trx.getId())
-                        .dueDate(trxDetail.getDueDate().toString())
-                        .paymentAmount(trxDetail.getPaymentAmount())
-                        .status(trxDetail.getStatus().name())
-                        .build()).toList())
-                .build();
+        return LoanTrxMapping.toLoanResponse(loanTrx);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -187,10 +172,22 @@ public class LoanTrxServiceImpl implements LoanTrxService {
                 .build();
     }
 
+    @Override
+    public void loanApproval(String id) {
+
+    }
+
     @Transactional(readOnly = true)
     @Override
     public LoanTrx getById(String id) {
         return repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan trx not found"));
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<LoanResponse> getAllLoanTrx() {
+        List<LoanTrx> loans = repository.findAll();
+        return LoanTrxMapping.toLoanResponses(loans);
     }
 
     @Transactional(rollbackFor = Exception.class)
