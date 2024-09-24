@@ -238,6 +238,13 @@ public class LoanTrxServiceImpl implements LoanTrxService {
         }
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public LoanResponse getLoanTrxById(String id) {
+        LoanTrx loanTrx = getById(id);
+        return LoanTrxMapping.toLoanResponse(loanTrx);
+    }
+
     private static ELoanType getLoanType(LoanRequest request) {
         if (request.getLoanType().equalsIgnoreCase(ELoanType.PERSONAL.name())) {
             return ELoanType.PERSONAL;

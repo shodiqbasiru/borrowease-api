@@ -18,4 +18,6 @@ public interface LoanTrxService {
     LoanTrx getById(String id);
     List<LoanResponse> getAllLoanTrx();
     void updateStatusAndLimit(UpdateOrderStatusRequest request);
+
+    LoanResponse getLoanTrxById(String id);
 }

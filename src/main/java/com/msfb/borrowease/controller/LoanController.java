@@ -86,4 +86,31 @@ public class LoanController {
                 .message("Loan transaction status updated successfully")
                 .build());
     }
+
+    @GetMapping(
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<CommonResponse<List<LoanResponse>>> getLoanTrx() {
+        List<LoanResponse> loanResponses = loanTrxService.getAllLoanTrx();
+        CommonResponse<List<LoanResponse>> response = CommonResponse.<List<LoanResponse>>builder()
+                .message("Loan transaction created successfully")
+                .statusCode(HttpStatus.OK.value())
+                .data(loanResponses)
+                .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping(
+            path = "/{id}",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<CommonResponse<LoanResponse>> getLoanTrxById(@PathVariable String id) {
+        LoanResponse loanResponse = loanTrxService.getLoanTrxById(id);
+        CommonResponse<LoanResponse> response = CommonResponse.<LoanResponse>builder()
+                .message("Loan transaction created successfully")
+                .statusCode(HttpStatus.OK.value())
+                .data(loanResponse)
+                .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 }
