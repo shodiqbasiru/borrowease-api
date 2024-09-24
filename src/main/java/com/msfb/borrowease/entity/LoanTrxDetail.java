@@ -30,7 +30,7 @@ public class LoanTrxDetail {
     private ELoanStatus status;
 
     @ManyToOne
-    @JoinColumn(name = "loan_trx_id", nullable = false)
+    @JoinColumn(name = "loan_trx_id")
     private LoanTrx loanTrx;
 
     @ManyToOne

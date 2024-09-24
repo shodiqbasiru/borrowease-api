@@ -1,9 +1,11 @@
 package com.msfb.borrowease.controller;
 
 import com.msfb.borrowease.constant.ApiRoute;
+import com.msfb.borrowease.model.request.LoanApprovalRequest;
 import com.msfb.borrowease.model.request.LoanRequest;
 import com.msfb.borrowease.model.request.PaymentLoanRequest;
 import com.msfb.borrowease.model.request.UpdateOrderStatusRequest;
+import com.msfb.borrowease.model.response.ApplicationResponse;
 import com.msfb.borrowease.model.response.CommonResponse;
 import com.msfb.borrowease.model.response.LoanResponse;
 import com.msfb.borrowease.model.response.PaymentResponse;
@@ -12,10 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -31,15 +30,30 @@ public class LoanController {
     }
 
     @PostMapping(
-            path = "create-loan-trx",
+            path = "create-application-loan",
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    public ResponseEntity<CommonResponse<LoanResponse>> createLoanTrx(@RequestBody LoanRequest request) {
-        LoanResponse loanResponse = loanTrxService.createLoanTrx(request);
-        CommonResponse<LoanResponse> response = CommonResponse.<LoanResponse>builder()
+    public ResponseEntity<CommonResponse<ApplicationResponse>> createLoanTrx(@RequestBody LoanRequest request) {
+        ApplicationResponse applicationResponse = loanTrxService.createLoanApplication(request);
+        CommonResponse<ApplicationResponse> response = CommonResponse.<ApplicationResponse>builder()
                 .message("Loan transaction created successfully")
                 .statusCode(HttpStatus.CREATED.value())
+                .data(applicationResponse)
+                .build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PutMapping(
+            path = "approval-loan",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<CommonResponse<LoanResponse>> approvalLoan(@RequestBody LoanApprovalRequest request) {
+        LoanResponse loanResponse = loanTrxService.createLoanApproval(request);
+        CommonResponse<LoanResponse> response = CommonResponse.<LoanResponse>builder()
+                .message("Loan transaction created successfully")
+                .statusCode(HttpStatus.OK.value())
                 .data(loanResponse)
                 .build();
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
