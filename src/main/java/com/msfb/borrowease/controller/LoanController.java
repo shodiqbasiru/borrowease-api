@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -38,6 +39,7 @@ public class LoanController {
             description = "API to create new loan application"
     )
     @SecurityRequirement(name = "Authorization")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping(
             path = "create-application-loan",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -58,6 +60,7 @@ public class LoanController {
             description = "API to approval loan"
     )
     @SecurityRequirement(name = "Authorization")
+    @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
     @PutMapping(
             path = "approval-loan",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -78,6 +81,7 @@ public class LoanController {
             description = "API to payment loan"
     )
     @SecurityRequirement(name = "Authorization")
+    @PreAuthorize("hasAnyRole('CUSTOMER')")
     @PostMapping(
             path = "payment-loan",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -116,6 +120,7 @@ public class LoanController {
             description = "API to get all loan transactions"
     )
     @SecurityRequirement(name = "Authorization")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','CUSTOMER')")
     @GetMapping(
             produces = MediaType.APPLICATION_JSON_VALUE
     )
@@ -134,6 +139,7 @@ public class LoanController {
             description = "API to get loan transaction by id"
     )
     @SecurityRequirement(name = "Authorization")
+    @PreAuthorize("hasAnyRole('ADMIN','STAFF','CUSTOMER')")
     @GetMapping(
             path = "/{id}",
             produces = MediaType.APPLICATION_JSON_VALUE
