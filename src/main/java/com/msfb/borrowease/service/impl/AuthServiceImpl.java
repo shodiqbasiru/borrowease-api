@@ -7,8 +7,10 @@ import com.msfb.borrowease.constant.EStatus;
 import com.msfb.borrowease.entity.*;
 import com.msfb.borrowease.model.request.LoginRequest;
 import com.msfb.borrowease.model.request.RegisterRequest;
+import com.msfb.borrowease.model.request.RegisterStaffRequest;
 import com.msfb.borrowease.model.response.LoginResponse;
 import com.msfb.borrowease.model.response.RegisterResponse;
+import com.msfb.borrowease.model.response.RegisterStaffResponse;
 import com.msfb.borrowease.repository.UserRepository;
 import com.msfb.borrowease.service.*;
 import com.msfb.borrowease.util.DateUtil;
@@ -31,6 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository repository;
     private final LoanLimitService loanLimitService;
     private final CustomerService customerService;
+    private final StaffService staffService;
     private final JwtService jwtService;
     private final IdentityCardService identityCardService;
     private final JobService jobService;
@@ -47,10 +50,11 @@ public class AuthServiceImpl implements AuthService {
     private static final int INITIAL_LIMIT = 10000000;
 
     @Autowired
-    public AuthServiceImpl(UserRepository repository, LoanLimitService loanLimitService, CustomerService customerService, JwtService jwtService, IdentityCardService identityCardService, JobService jobService, AuthenticationManager authenticationManager, PasswordEncoder passwordEncoder) {
+    public AuthServiceImpl(UserRepository repository, LoanLimitService loanLimitService, CustomerService customerService, StaffService staffService, JwtService jwtService, IdentityCardService identityCardService, JobService jobService, AuthenticationManager authenticationManager, PasswordEncoder passwordEncoder) {
         this.repository = repository;
         this.loanLimitService = loanLimitService;
         this.customerService = customerService;
+        this.staffService = staffService;
         this.jwtService = jwtService;
         this.identityCardService = identityCardService;
         this.jobService = jobService;
@@ -159,6 +163,49 @@ public class AuthServiceImpl implements AuthService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
+    public RegisterStaffResponse registerStaff(RegisterStaffRequest request) {
+        String hashPassword = passwordEncoder.encode(request.getPassword());
+        ERole roleStaff = ERole.ROLE_STAFF;
+
+        User user = User.builder()
+                .username(request.getUsername())
+                .password(hashPassword)
+                .isEnable(true)
+                .role(roleStaff)
+                .build();
+        user = repository.saveAndFlush(user);
+
+        Staff staff = Staff.builder()
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .email(request.getEmail())
+                .phoneNumber(request.getPhoneNumber())
+                .address(request.getAddress())
+                .createdAt(new Date())
+                .updatedAt(new Date())
+                .user(user)
+                .build();
+        staff = staffService.createStaff(staff);
+
+        String cratedAtResponse = DateUtil.formatDate(staff.getCreatedAt(), "yyyy-MM-dd HH:mm:ss");
+        String updatedAtResponse = DateUtil.formatDate(staff.getUpdatedAt(), "yyyy-MM-dd HH:mm:ss");
+
+        return RegisterStaffResponse.builder()
+                .id(user.getId())
+                .firstName(staff.getFirstName())
+                .lastName(staff.getLastName())
+                .username(user.getUsername())
+                .role(user.getRole().name())
+                .phoneNumber(staff.getPhoneNumber())
+                .email(staff.getEmail())
+                .address(staff.getAddress())
+                .createdAt(cratedAtResponse)
+                .updatedAt(updatedAtResponse)
+                .build();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
     public LoginResponse loginCustomer(LoginRequest request) {
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 request.getUsername(),
@@ -169,10 +216,12 @@ public class AuthServiceImpl implements AuthService {
         User user = (User) authenticate.getPrincipal();
 
         String jwtToken = jwtService.generateJwtToken(user);
+        String customerId = (user.getCustomer() != null) ? user.getCustomer().getId() : null;
 
         return LoginResponse.builder()
                 .userId(user.getId())
                 .username(user.getUsername())
+                .customerId(customerId)
                 .role(user.getRole().name())
                 .token(jwtToken)
                 .build();

@@ -38,6 +38,9 @@ public class User implements UserDetails {
     @OneToOne(mappedBy = "user")
     private Customer customer;
 
+    @OneToOne(mappedBy = "user")
+    private Staff staff;
+
     @Column(name = "deleted_at")
     @Temporal(TemporalType.TIMESTAMP)
     private Date deletedAt;
