@@ -1,6 +1,10 @@
 package com.msfb.borrowease.service.impl;
 
 import com.msfb.borrowease.entity.Staff;
+import com.msfb.borrowease.entity.User;
+import com.msfb.borrowease.mapping.StaffMapping;
+import com.msfb.borrowease.model.request.StaffRequest;
+import com.msfb.borrowease.model.response.StaffResponse;
 import com.msfb.borrowease.repository.StaffRepository;
 import com.msfb.borrowease.service.StaffService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,28 +40,40 @@ public class StaffServiceImpl implements StaffService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<Staff> getAllStaffs() {
-        return repository.findAll();
+    public StaffResponse getStaffById(String id) {
+        Staff staff = getById(id);
+        return StaffMapping.toStaffResponse(staff);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public List<StaffResponse> getAllStaffs() {
+        List<Staff> staff = repository.findAll();
+        return StaffMapping.toStaffResponses(staff);
     }
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public Staff updateStaff(Staff staff) {
-        Staff currentStaff = getById(staff.getId());
+    public StaffResponse updateStaff(StaffRequest request) {
+        Staff currentStaff = getById(request.getId());
 
-        currentStaff.setFirstName(staff.getFirstName());
-        currentStaff.setLastName(staff.getLastName());
-        currentStaff.setPhoneNumber(staff.getPhoneNumber());
-        currentStaff.setEmail(staff.getEmail());
-        currentStaff.setAddress(staff.getAddress());
+        currentStaff.setFirstName(request.getFirstName());
+        currentStaff.setLastName(request.getLastName());
+        currentStaff.setPhoneNumber(request.getPhoneNumber());
+        currentStaff.setEmail(request.getEmail());
+        currentStaff.setAddress(request.getAddress());
         currentStaff.setUpdatedAt(new Date());
-        return repository.saveAndFlush(currentStaff);
+
+        Staff staff = repository.saveAndFlush(currentStaff);
+        return StaffMapping.toStaffResponse(staff);
     }
 
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void deleteStaff(String id) {
         Staff staff = getById(id);
-        repository.delete(staff);
+        User user = staff.getUser();
+        user.setDeletedAt(new Date());
+        user.setIsEnable(false);
     }
 }

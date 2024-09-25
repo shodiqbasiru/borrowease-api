@@ -50,7 +50,17 @@ public class AuthServiceImpl implements AuthService {
     private static final int INITIAL_LIMIT = 10000000;
 
     @Autowired
-    public AuthServiceImpl(UserRepository repository, LoanLimitService loanLimitService, CustomerService customerService, StaffService staffService, JwtService jwtService, IdentityCardService identityCardService, JobService jobService, AuthenticationManager authenticationManager, PasswordEncoder passwordEncoder) {
+    public AuthServiceImpl(
+            UserRepository repository,
+            LoanLimitService loanLimitService,
+            CustomerService customerService,
+            StaffService staffService,
+            JwtService jwtService,
+            IdentityCardService identityCardService,
+            JobService jobService,
+            AuthenticationManager authenticationManager,
+            PasswordEncoder passwordEncoder
+    ) {
         this.repository = repository;
         this.loanLimitService = loanLimitService;
         this.customerService = customerService;
