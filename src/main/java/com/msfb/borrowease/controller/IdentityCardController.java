@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,6 +32,7 @@ public class IdentityCardController {
             description = "API to create new Identity Card"
     )
     @SecurityRequirement(name = "Authorization")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
@@ -50,6 +52,7 @@ public class IdentityCardController {
             description = "API to get all Identity Cards"
     )
     @SecurityRequirement(name = "Authorization")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping(
             produces = MediaType.APPLICATION_JSON_VALUE
     )
@@ -67,6 +70,7 @@ public class IdentityCardController {
             summary = "Get Identity Card by id",
             description = "API to get Identity Card by id"
     )
+    @PreAuthorize("hasRole('ADMIN')")
     @SecurityRequirement(name = "Authorization")
     @GetMapping(
             path = "/{id}",
@@ -87,6 +91,7 @@ public class IdentityCardController {
             description = "API to update Identity Card"
     )
     @SecurityRequirement(name = "Authorization")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
@@ -106,6 +111,7 @@ public class IdentityCardController {
             description = "API to delete Identity Card"
     )
     @SecurityRequirement(name = "Authorization")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping(
             path = "/{id}",
             produces = MediaType.APPLICATION_JSON_VALUE
