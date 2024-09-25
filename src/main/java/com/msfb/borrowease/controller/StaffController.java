@@ -5,6 +5,9 @@ import com.msfb.borrowease.model.request.StaffRequest;
 import com.msfb.borrowease.model.response.CommonResponse;
 import com.msfb.borrowease.model.response.StaffResponse;
 import com.msfb.borrowease.service.StaffService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,6 +19,7 @@ import java.util.List;
 
 @Controller
 @RequestMapping(ApiRoute.STAFF_API)
+@Tag(name = "Staff", description = "Staff API")
 public class StaffController {
     private final StaffService staffService;
 
@@ -24,6 +28,11 @@ public class StaffController {
         this.staffService = staffService;
     }
 
+    @Operation(
+            summary = "Get all staffs",
+            description = "API to get all staffs"
+    )
+    @SecurityRequirement(name = "Authorization")
     @GetMapping(
             produces = MediaType.APPLICATION_JSON_VALUE
     )
@@ -37,6 +46,11 @@ public class StaffController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Get staff by id",
+            description = "API to get staff by id"
+    )
+    @SecurityRequirement(name = "Authorization")
     @GetMapping(
             path = "/{id}",
             produces = MediaType.APPLICATION_JSON_VALUE
@@ -51,6 +65,11 @@ public class StaffController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Update staff",
+            description = "API to update staff"
+    )
+    @SecurityRequirement(name = "Authorization")
     @PutMapping(
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE

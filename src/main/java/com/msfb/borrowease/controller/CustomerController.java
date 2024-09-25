@@ -5,6 +5,9 @@ import com.msfb.borrowease.model.request.CustomerRequest;
 import com.msfb.borrowease.model.response.CommonResponse;
 import com.msfb.borrowease.model.response.CustomerResponse;
 import com.msfb.borrowease.service.CustomerService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,6 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping(ApiRoute.CUSTOMER_API)
+@Tag(name = "Customer", description = "Customer API")
 public class CustomerController {
     private final CustomerService customerService;
 
@@ -23,6 +27,11 @@ public class CustomerController {
         this.customerService = customerService;
     }
 
+    @Operation(
+            summary = "Get customer by id",
+            description = "API to get customer by id"
+    )
+    @SecurityRequirement(name = "Authorization")
     @GetMapping(
             path = "/{id}",
             produces = MediaType.APPLICATION_JSON_VALUE
@@ -37,6 +46,10 @@ public class CustomerController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Get all customers",
+            description = "API to get all customers"
+    )
     @GetMapping(
             produces = MediaType.APPLICATION_JSON_VALUE
     )
@@ -50,6 +63,10 @@ public class CustomerController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Update customer",
+            description = "API to update customer"
+    )
     @PutMapping(
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE

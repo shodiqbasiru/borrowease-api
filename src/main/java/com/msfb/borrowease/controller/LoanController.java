@@ -10,6 +10,9 @@ import com.msfb.borrowease.model.response.CommonResponse;
 import com.msfb.borrowease.model.response.LoanResponse;
 import com.msfb.borrowease.model.response.PaymentResponse;
 import com.msfb.borrowease.service.LoanTrxService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,6 +24,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping(ApiRoute.LOAN_API)
+@Tag(name = "Loan", description = "Loan API")
 public class LoanController {
     private final LoanTrxService loanTrxService;
 
@@ -29,6 +33,11 @@ public class LoanController {
         this.loanTrxService = loanTrxService;
     }
 
+    @Operation(
+            summary = "Create new loan application",
+            description = "API to create new loan application"
+    )
+    @SecurityRequirement(name = "Authorization")
     @PostMapping(
             path = "create-application-loan",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -44,6 +53,11 @@ public class LoanController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Operation(
+            summary = "Approval loan",
+            description = "API to approval loan"
+    )
+    @SecurityRequirement(name = "Authorization")
     @PutMapping(
             path = "approval-loan",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -59,6 +73,11 @@ public class LoanController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Operation(
+            summary = "Payment loan",
+            description = "API to payment loan"
+    )
+    @SecurityRequirement(name = "Authorization")
     @PostMapping(
             path = "payment-loan",
             consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -74,6 +93,11 @@ public class LoanController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Operation(
+            summary = "Update loan status",
+            description = "API to update loan status"
+    )
+    @SecurityRequirement(name = "Authorization")
     @PostMapping("/status")
     public ResponseEntity<CommonResponse<?>> updateStatus(@RequestBody Map<String, String> request) {
         UpdateOrderStatusRequest updateOrderStatusRequest = UpdateOrderStatusRequest.builder()
@@ -87,6 +111,11 @@ public class LoanController {
                 .build());
     }
 
+    @Operation(
+            summary = "Get all loan transactions",
+            description = "API to get all loan transactions"
+    )
+    @SecurityRequirement(name = "Authorization")
     @GetMapping(
             produces = MediaType.APPLICATION_JSON_VALUE
     )
@@ -100,6 +129,11 @@ public class LoanController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
+    @Operation(
+            summary = "Get loan transaction by id",
+            description = "API to get loan transaction by id"
+    )
+    @SecurityRequirement(name = "Authorization")
     @GetMapping(
             path = "/{id}",
             produces = MediaType.APPLICATION_JSON_VALUE
