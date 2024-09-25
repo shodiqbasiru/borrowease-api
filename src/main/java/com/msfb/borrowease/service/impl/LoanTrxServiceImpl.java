@@ -3,13 +3,11 @@ package com.msfb.borrowease.service.impl;
 import com.msfb.borrowease.constant.*;
 import com.msfb.borrowease.entity.*;
 import com.msfb.borrowease.mapping.LoanTrxMapping;
+import com.msfb.borrowease.model.request.LoanApprovalRequest;
 import com.msfb.borrowease.model.request.LoanRequest;
 import com.msfb.borrowease.model.request.PaymentLoanRequest;
 import com.msfb.borrowease.model.request.UpdateOrderStatusRequest;
-import com.msfb.borrowease.model.response.LoanResponse;
-import com.msfb.borrowease.model.response.LoanTrxDetailResponse;
-import com.msfb.borrowease.model.response.PaymentDetailResponse;
-import com.msfb.borrowease.model.response.PaymentResponse;
+import com.msfb.borrowease.model.response.*;
 import com.msfb.borrowease.repository.LoanTrxRepository;
 import com.msfb.borrowease.service.*;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +42,7 @@ public class LoanTrxServiceImpl implements LoanTrxService {
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public LoanResponse createLoanTrx(LoanRequest request) {
+    public ApplicationResponse createLoanApplication(LoanRequest request) {
         Customer customer = customerService.getById(request.getCustomerId());
 
         boolean isUnpaidLoan = customer.getLoanTrx().stream().anyMatch(loanTrx -> loanTrx.getLoanTrxDetails().stream().anyMatch(trxDetail -> trxDetail.getStatus().equals(ELoanStatus.UNPAID)));
@@ -82,9 +80,6 @@ public class LoanTrxServiceImpl implements LoanTrxService {
         if (loanLimit.getCurrentLimit() - request.getAmount() < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Loan amount exceeds loan limit");
         }
-        loanLimit.setCurrentLimit(loanLimit.getCurrentLimit() - request.getAmount());
-        loanLimit.setUpdatedAt(new Date());
-        loanLimitService.saveLoanLimit(loanLimit);
 
         ELoanType loanType = getLoanType(request);
 
@@ -97,37 +92,70 @@ public class LoanTrxServiceImpl implements LoanTrxService {
                 .installment(loanInstallment)
                 .installmentAmount((int) (request.getAmount() * (1 + interestRate / 100)))
                 .customer(customer)
-                .loanProcess(ELoanProcess.ON_PROGRESS)
+                .loanProcess(ELoanProcess.PENDING)
                 .build();
-        LoanTrx trx = repository.saveAndFlush(loanTrx);
+        repository.saveAndFlush(loanTrx);
 
-        int paymentAmount = (int) (request.getAmount() * (1 + interestRate / 100) / loanInstallment.getMonth());
 
-        int lengthTrxDetail = loanInstallment.getMonth();
-        List<LoanTrxDetail> loanTrxDetails = new ArrayList<>();
-        for (int i = 0; i < lengthTrxDetail; i++) {
-            LoanTrxDetail loanTrxDetail = LoanTrxDetail.builder()
-                    .loanTrx(loanTrx)
-                    .paymentAmount(paymentAmount)
-                    .status(ELoanStatus.UNPAID)
-                    .build();
+        return ApplicationResponse.builder()
+                .id(loanTrx.getId())
+                .customerId(loanTrx.getCustomer().getId())
+                .loanType(loanTrx.getLoanType().name())
+                .amount(loanTrx.getAmount())
+                .loanProcess(loanTrx.getLoanProcess().name())
+                .build();
+    }
 
-            Date startDate = new Date();
-            Date dueDate = new Date(startDate.getTime() + (long) 30 * 24 * 60 * 60 * 1000);
-            if (i > 0) {
-                startDate = loanTrxDetails.get(i - 1).getDueDate();
-                dueDate = new Date(startDate.getTime() + (long) 30 * 24 * 60 * 60 * 1000);
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public LoanResponse createLoanApproval(LoanApprovalRequest request) {
+        LoanTrx loanTrx = getById(request.getLoanId());
+
+        if (request.getLoanProcess().equalsIgnoreCase(ELoanProcess.REJECTED.name())) {
+            loanTrx.setLoanProcess(ELoanProcess.REJECTED);
+            return LoanTrxMapping.toLoanResponse(loanTrx);
+        } else if (request.getLoanProcess().equalsIgnoreCase(ELoanProcess.APPROVED.name())) {
+
+            if (loanTrx.getLoanProcess().equals(ELoanProcess.APPROVED)) {
+                throw new ResponseStatusException(HttpStatus.NOT_ACCEPTABLE, "Loan already approved");
             }
 
-            loanTrxDetail.setDueDate(dueDate);
+            loanTrx.setLoanProcess(ELoanProcess.APPROVED);
+            LoanLimit loanLimit = loanLimitService.getById(loanTrx.getCustomer().getLoanLimit().getId());
+            loanLimit.setCurrentLimit(loanLimit.getCurrentLimit() - loanTrx.getAmount());
+            loanLimit.setUpdatedAt(new Date());
+            loanLimitService.saveLoanLimit(loanLimit);
 
-            LoanTrxDetail detail = loanTrxDetailService.createLoanTrxDetail(loanTrxDetail);
-            loanTrxDetails.add(detail);
+            int paymentAmount = (int) (loanTrx.getAmount() * (1 + loanTrx.getInterestRate() / 100) / loanTrx.getInstallment().getMonth());
+
+            int lengthTrxDetail = loanTrx.getInstallment().getMonth();
+            List<LoanTrxDetail> loanTrxDetails = new ArrayList<>();
+            for (int i = 0; i < lengthTrxDetail; i++) {
+                LoanTrxDetail loanTrxDetail = LoanTrxDetail.builder()
+                        .loanTrx(loanTrx)
+                        .paymentAmount(paymentAmount)
+                        .status(ELoanStatus.UNPAID)
+                        .build();
+
+                Date startDate = new Date();
+                Date dueDate = new Date(startDate.getTime() + (long) 30 * 24 * 60 * 60 * 1000);
+                if (i > 0) {
+                    startDate = loanTrxDetails.get(i - 1).getDueDate();
+                    dueDate = new Date(startDate.getTime() + (long) 30 * 24 * 60 * 60 * 1000);
+                }
+
+                loanTrxDetail.setDueDate(dueDate);
+
+                LoanTrxDetail detail = loanTrxDetailService.createLoanTrxDetail(loanTrxDetail);
+                loanTrxDetails.add(detail);
+            }
+
+            loanTrx.setLoanTrxDetails(loanTrxDetails);
+            return LoanTrxMapping.toLoanResponse(loanTrx);
+        } else {
+            throw new ResponseStatusException(HttpStatus.NOT_ACCEPTABLE, "Loan process not valid");
         }
 
-        loanTrx.setLoanTrxDetails(loanTrxDetails);
-
-        return LoanTrxMapping.toLoanResponse(loanTrx);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -172,11 +200,6 @@ public class LoanTrxServiceImpl implements LoanTrxService {
                 .build();
     }
 
-    @Override
-    public void loanApproval(String id) {
-
-    }
-
     @Transactional(readOnly = true)
     @Override
     public LoanTrx getById(String id) {
@@ -213,6 +236,13 @@ public class LoanTrxServiceImpl implements LoanTrxService {
         } else {
             loanTrx.setLoanProcess(ELoanProcess.ON_PROGRESS);
         }
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public LoanResponse getLoanTrxById(String id) {
+        LoanTrx loanTrx = getById(id);
+        return LoanTrxMapping.toLoanResponse(loanTrx);
     }
 
     private static ELoanType getLoanType(LoanRequest request) {
