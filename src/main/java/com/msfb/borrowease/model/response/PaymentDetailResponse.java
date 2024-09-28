@@ -10,4 +10,6 @@ import lombok.*;
 public class PaymentDetailResponse {
     private String id;
     private Integer amount;
+    private String status;
+    private Double lateFee;
 }

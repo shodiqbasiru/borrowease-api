@@ -10,6 +10,7 @@ import com.msfb.borrowease.model.request.UpdateOrderStatusRequest;
 import com.msfb.borrowease.model.response.*;
 import com.msfb.borrowease.repository.LoanTrxRepository;
 import com.msfb.borrowease.service.*;
+import com.msfb.borrowease.util.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -30,6 +32,8 @@ public class LoanTrxServiceImpl implements LoanTrxService {
     private final LoanLimitService loanLimitService;
     private final LoanTrxDetailService loanTrxDetailService;
     private final PaymentService paymentService;
+
+    private static final double LATE_FEE_PERCENTAGE = 0.05;
 
     @Autowired
     public LoanTrxServiceImpl(LoanTrxRepository repository, CustomerService customerService, LoanLimitService loanLimitService, LoanTrxDetailService loanTrxDetailService, PaymentService paymentService) {
@@ -170,6 +174,9 @@ public class LoanTrxServiceImpl implements LoanTrxService {
             if (request.getAmount() < trxDetail.getPaymentAmount()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payment amount less than payment amount");
             }
+            if (DateUtil.isLatePayment(trxDetail.getDueDate())) {
+                trxDetail.setLateFee(LATE_FEE_PERCENTAGE * trxDetail.getPaymentAmount());
+            }
 
             trxDetail.setStatus(ELoanStatus.PENDING);
             loanTrxDetails.add(loanTrxDetailService.createLoanTrxDetail(trxDetail));
@@ -184,10 +191,22 @@ public class LoanTrxServiceImpl implements LoanTrxService {
             loanTrxDetail.setPayment(payment);
             loanTrxDetailService.createLoanTrxDetail(loanTrxDetail);
         }
-        List<PaymentDetailResponse> detailPaymentResponses = requests.stream().map(request -> PaymentDetailResponse.builder()
-                .id(request.getLoanTrxDetailId())
-                .amount(request.getAmount())
-                .build()).toList();
+        List<PaymentDetailResponse> detailPaymentResponses = requests.stream().map(request -> {
+            Optional<LoanTrxDetail> optionalTrxDetail = loanTrxDetails.stream()
+                    .filter(trxDetail -> trxDetail.getId().equals(request.getLoanTrxDetailId()))
+                    .findFirst();
+            if (optionalTrxDetail.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Loan trx detail not found");
+
+            String status = optionalTrxDetail.get().getStatus().name();
+            double lateFee = optionalTrxDetail.get().getLateFee() != null ? optionalTrxDetail.get().getLateFee() : 0;
+
+            return PaymentDetailResponse.builder()
+                    .id(request.getLoanTrxDetailId())
+                    .amount(request.getAmount())
+                    .status(status)
+                    .lateFee(lateFee)
+                    .build();
+        }).toList();
 
         if (payment == null) throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error while creating payment");
 

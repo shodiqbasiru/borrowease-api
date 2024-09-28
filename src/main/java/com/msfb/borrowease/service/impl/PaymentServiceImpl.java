@@ -54,19 +54,21 @@ public class PaymentServiceImpl implements PaymentService {
         for (PaymentLoanRequest request : loanRequests) {
             for (LoanTrxDetail trxDetail : trx.getLoanTrxDetails()) {
                 if (trxDetail.getId().equals(request.getLoanTrxDetailId())) {
-                    amount += trxDetail.getPaymentAmount();
+                    amount += trxDetail.getLateFee() != null ? trxDetail.getPaymentAmount() + trxDetail.getLateFee() : trxDetail.getPaymentAmount();
                 }
             }
         }
 
         List<PaymentItemDetailRequest> itemDetailRequests = new ArrayList<>();
+
         for (int i = 0; i < qty; i++) {
             PaymentLoanRequest request = loanRequests.get(i);
             for (LoanTrxDetail trxDetail : trx.getLoanTrxDetails()) {
                 if (trxDetail.getId().equals(request.getLoanTrxDetailId())) {
+                    int price = trxDetail.getLateFee() != null ? (int) (trxDetail.getPaymentAmount() + trxDetail.getLateFee()) : trxDetail.getPaymentAmount();
                     itemDetailRequests.add(PaymentItemDetailRequest.builder()
                             .name("Installment - " + trxDetail.getDueDate().toString())
-                            .price(trxDetail.getPaymentAmount())
+                            .price(price)
                             .quantity(1)
                             .build());
                 }
@@ -108,7 +110,8 @@ public class PaymentServiceImpl implements PaymentService {
 
         Map<String, String> body = response.getBody();
 
-        if (body == null) throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error while creating payment");
+        if (body == null)
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error while creating payment");
 
         payment.setToken(body.get("token"));
         payment.setRedirectUrl(body.get("redirect_url"));
@@ -138,6 +141,6 @@ public class PaymentServiceImpl implements PaymentService {
     @Transactional(readOnly = true)
     @Override
     public Payment getById(String paymentId) {
-        return repository.findById(paymentId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"payment not found"));
+        return repository.findById(paymentId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "payment not found"));
     }
 }

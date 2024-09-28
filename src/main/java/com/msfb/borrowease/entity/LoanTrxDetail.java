@@ -29,6 +29,9 @@ public class LoanTrxDetail {
     @Enumerated(EnumType.STRING)
     private ELoanStatus status;
 
+    @Column(name = "late_fee")
+    private Double lateFee;
+
     @ManyToOne
     @JoinColumn(name = "loan_trx_id")
     private LoanTrx loanTrx;

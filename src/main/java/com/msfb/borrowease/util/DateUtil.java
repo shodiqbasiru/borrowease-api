@@ -23,4 +23,9 @@ public class DateUtil {
         sdf.setTimeZone(TimeZone.getTimeZone("Asia/Jakarta"));
         return sdf.format(date);
     }
+
+    public static boolean isLatePayment(Date dueDate) {
+        Date now = new Date();
+        return now.after(dueDate);
+    }
 }
